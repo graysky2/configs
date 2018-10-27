@@ -1,0 +1,50 @@
+*newLoginCommand: lxdm -c USER_SWITCH
+
+xterm*termName: xterm-256color
+
+URxvt.depth: 32
+URxvt.background: rgba:1111/1111/1111/dddd
+
+URxvt*termName:screen-256color
+URxvt*loginShell:true
+URxvt.iconFile:	/usr/share/icons/HighContrast/scalable/apps/utilities-terminal.svg
+URxvt.scrollstyle: rxvt
+URxvt*scrollTtyOutput:	false
+URxvt*scrollWithBuffer:	true
+URxvt*scrollTtyKeypress:	true
+URxvt.geometry: 112x32
+URxvt.depth: 32
+URxvt.saveLines: 50000
+
+URxvt.bondFont:xft:droid sans:size=10:antialias=false:hinting=false
+
+Xft.dpi:	96
+Xft.antialias:	true
+Xft.rgba:	rgb
+Xft.hinting:	true
+Xft.hintstyle:	hintfull
+
+URxvt.foreground: #FFFFFF
+URxvt.background: #212121
+URxvt.color0:     #2E3436
+URxvt.color1:     #CC0000
+URxvt.color2:     #4E9A06
+URxvt.color3:     #C4A000
+URxvt.color4:     #3465A4
+URxvt.color5:     #75507B
+URxvt.color6:     #06989A
+URxvt.color7:     #D3D7CF
+URxvt.color8:     #555753
+URxvt.color9:     #EF2929
+URxvt.color10:    #8AE234
+URxvt.color11:    #FCE94F
+URxvt.color12:    #729FCF
+URxvt.color13:    #AD7FA8
+URxvt.color14:    #34E2E2
+URxvt.color15:    #EEEEEC
+
+! Change fonts on demand
+!URxvt.keysym.M-C-1: command:\033]710;xft:droid-sans:size=10:antialias=true:hinting=true\007\033]711;xft:ubuntu mono:size=14:antialias=true:hinting=true\007
+!URxvt.keysym.M-C-2: command:\033]710;xft:ubuntu mono:size=10:antialias=true:hinting=false\007\033]711;xft:ubuntu mono:size=14:antialias=true:hinting=false\007
+!URxvt.keysym.M-C-3: command:\033]710;xft:ubuntu mono:size=10:antialias=false:hinting=true\007\033]711;xft:ubuntu mono:size=14:antialias=false:hinting=true\007
+!URxvt.keysym.M-C-4: command:\033]710;xft:ubuntu mono:size=10:antialias=false:hinting=false\007\033]711;xft:ubuntu mono:size=14:antialias=false:hinting=false\007

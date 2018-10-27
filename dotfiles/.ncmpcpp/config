@@ -1,0 +1,55 @@
+##### connection settings ######
+mpd_host = ease
+mpd_music_dir = /mnt/data/music/genre
+
+##### song format #####
+song_list_format = {$8(%l)$9 }{%a - }{%t}|{$8%f$9}
+song_library_format = {%n_}{%t}|{%f}
+
+##### columns settings #####
+playlist_disable_highlight_delay = 0
+song_columns_list_format = (22)[blue]{a} (7)[green]{n} (30)[white]{t} (29)[cyan]{b} (5)[blue]{y} (7)[white]{l}
+browser_playlist_prefix = $7playlist$9 
+selected_item_prefix = $8
+selected_item_suffix = $9
+
+##### various settings #####
+user_interface = alternative
+display_bitrate = yes
+media_library_primary_tag = album_artist
+mouse_support = no
+
+progressbar_look = "-▒█"
+progressbar_elapsed_color = white
+progressbar_color = blue
+
+data_fetching_delay = no
+ask_before_clearing_playlists = no
+playlist_display_mode = columns
+browser_display_mode = columns
+incremental_seeking = yes
+autocenter_mode = yes
+header_visibility = yes
+statusbar_visibility = yes
+follow_now_playing_lyrics = yes
+header_text_scrolling = yes
+ignore_leading_the = yes
+
+##### colors definitions #####
+empty_tag_color = white
+header_window_color = white
+volume_color = red
+state_line_color = blue
+state_flags_color = blue
+main_window_color = blue
+color1 = blue
+color2 = cyan
+
+#active_column_color = magenta
+#current_item_inactive_column_prefix = magenta
+#current_item_inactive_column_suffix = magenta
+#current_item_prefix = "$(magenta)$r"
+current_item_prefix = "$(yellow)$r"
+current_item_suffix = "$/r$(end)"
+window_border_color = white
+active_window_border = magenta
