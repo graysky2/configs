@@ -36,14 +36,6 @@ setopt share_history
 # fix zsh annoying history behavior
 h() { if [ -z "$*" ]; then history 1; else history 1 | egrep "$@"; fi; }
 
-FF() {
-  if [[ -n "$1" ]]; then
-    find . -type f -printf "%TY%Tm%Td\t%p\n" | grep -i "$1"
-  else
-    return 1
-  fi
-}
-
 autoload -Uz up-line-or-beginning-search
 autoload -Uz down-line-or-beginning-search
 zle -N up-line-or-beginning-search
@@ -111,14 +103,27 @@ alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='sudo systemctl start mpd'
 
+upp() {
+  for i in 1 2 4 8; do
+    if reflector -c US -a $i -f 5 -p http -p https -p ftp --sort rate --save /etc/pacman.d/mirrorlist.reflector; then
+      cat /etc/pacman.d/mirrorlist.reflector
+      sudo pacman -Syu
+      cower --ignorerepo=router -u
+      return 0
+    else
+      echo "something is fucked up"
+    fi
+  done
+}
+
+alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
+alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 3 || return 0'
+alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
+alias pp='sudo pacman -Syu && cower --ignorerepo=router -u'
+
 pagrep() {
   [[ -z "$1" ]] && echo 'Define a grep string and try again' && return 1
    find . -type f -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
-}
-
-comp() {
-  [[ -z "$1" ]] && echo 'Define an image file and try again' && return 1
-  [[ -f "$1" ]] && cjpeg -quality 85 "${1}" > "${1%.*}.85.jpg"
 }
 
 fix() {
@@ -193,8 +198,20 @@ x() {
   fi
 }
 
-# less general
-# probably want to delete most of these as they are specific to my needs
+## more specific
+
+FF() {
+  if [[ -n "$1" ]]; then
+    find . -type f -printf "%TY%Tm%Td\t%p\n" | grep -i "$1"
+  else
+    return 1
+  fi
+}
+
+comp() {
+  [[ -z "$1" ]] && echo 'Define an image file and try again' && return 1
+  [[ -f "$1" ]] && cjpeg -quality 85 "${1}" > "${1%.*}.85.jpg"
+}
 
 bi() {
   [[ -d "$1" ]] && {
@@ -226,28 +243,6 @@ alias hddtemp='sudo hddtemp'
 alias nets='sudo netstat -nlptu'
 alias nets2='sudo lsof -i'
 
-# pacman and package related
-# update with fresh mirror list
-upp() {
-  for i in 1 2 4 8; do
-    if reflector -c US -a $i -f 5 -p http -p https -p ftp --sort rate --save /etc/pacman.d/mirrorlist.reflector; then
-      cat /etc/pacman.d/mirrorlist.reflector
-      sudo pacman -Syu
-      cower --ignorerepo=router -u
-      return 0
-    else
-      echo "something is fucked up"
-    fi
-  done
-}
-
-alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
-alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 3 || return 0'
-alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
-
-# update
-alias pp='sudo pacman -Syu && cower --ignorerepo=router -u'
-
 signit() {
   if [[ -z "$1" ]]; then
     echo "Provide a filename and try again."
@@ -259,7 +254,6 @@ signit() {
   fi
 }
 
-# github shortcuts
 alias gitc='git commit -av'
 
 clone() {
