@@ -1,5 +1,6 @@
 autocmd BufEnter PKGBUILD set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter *.install set ai sw=2 ts=2 sta et fo=croql
+autocmd BufRead,BufNewFile *.conf setf dosini
 
 colorscheme jellybeans
 let g:jellybeans_use_lowcolor_black = 0
