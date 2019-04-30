@@ -1,14 +1,17 @@
 autocmd BufEnter PKGBUILD set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter *.install set ai sw=2 ts=2 sta et fo=croql
+autocmd BufRead,BufNewFile kodi.log setf kodi
 autocmd BufRead,BufNewFile *.conf setf dosini
+autocmd BufRead,BufNewFile PKGBUILD setf PKGBUILD
 
 colorscheme jellybeans
 let g:jellybeans_use_lowcolor_black = 0
 let g:jellybeans_use_term_italics = 1
 
-set autoindent
+"set autoindent
 set tabstop=2
 set shiftwidth=2
+set smartindent
 
 syntax on
 filetype indent on

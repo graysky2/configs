@@ -102,6 +102,7 @@ alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='sudo systemctl start mpd'
+alias cower='cower --ignorerepo=router'
 
 upp() {
   for i in 1 2 4 8; do
@@ -186,6 +187,9 @@ x() {
       *.7z)
         b=$(basename "$1" .7z)
         7z x "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
+      *.zst)
+        b=$(basename "$1" .zst)
+        tar xf "$1" && return 0 ;;
       *.deb)
         b=$(basename "$1" .deb)
         ar x "$1" && return 0 ;;
@@ -202,7 +206,7 @@ x() {
 
 FF() {
   if [[ -n "$1" ]]; then
-    find . -type f -printf "%TY%Tm%Td\t%p\n" | grep -i "$1"
+    find . -type f -printf "%TY%Tm%Td\t%p\n" | sort| grep -i "$1"
   else
     return 1
   fi
@@ -238,7 +242,7 @@ justbump() {
 }
 
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
-alias ccm='sudo ccm64'
+alias ccm='sudo ccm'
 alias hddtemp='sudo hddtemp'
 alias nets='sudo netstat -nlptu'
 alias nets2='sudo lsof -i'
