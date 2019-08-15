@@ -96,6 +96,7 @@ alias rsync='noglob rsync'
 alias scp='noglob scp'
 alias git='noglob git'
 alias find='noglob find'
+alias ccr="cd /scratch/.chroot64/$(whoami)/build"
 
 alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND" && ps aux | grep -i'
 alias ma='cd /home/stuff/aur4'
@@ -180,7 +181,7 @@ x() {
         bsdtar xzf "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.zip)
         b=$(basename "$1" .zip)
-        unzip "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
+        unzip -qq "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.Z)
         b=$(basename "$1" .Z)
         uncompress "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
@@ -210,11 +211,6 @@ FF() {
   else
     return 1
   fi
-}
-
-comp() {
-  [[ -z "$1" ]] && echo 'Define an image file and try again' && return 1
-  [[ -f "$1" ]] && cjpeg -quality 85 "${1}" > "${1%.*}.85.jpg"
 }
 
 bi() {
