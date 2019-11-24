@@ -7,7 +7,11 @@
 BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
 
 echo -e "\x1B]2;$(whoami)@$(uname -n)\x07";
+
 export MPD_HOST=$(ip addr show br0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
+export DISTCC_DIR=/scratch/.distcc
+export CHROOTPATH64=/scratch/.chroot
+
 bindkey -v
 
 PATH=$PATH:$HOME/bin
@@ -17,11 +21,11 @@ PATH=$PATH:$HOME/bin
 PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup
 
 [[ -x /usr/bin/archey3 ]] && archey3
+[[ -x /usr/bin/alsi ]] && alsi -a
 
 # use middle-click for pass rather than clipboard
 export PASSWORD_STORE_X_SELECTION=primary
 export PASSWORD_STORE_CLIP_TIME=10
-export ASPROOT=$HOME/.config/asp
 
 # history stuff
 HISTFILE=$HOME/.zsh_history
@@ -76,7 +80,6 @@ udisabled() { systemctl --user disable "$1"; }
 
 # general aliases and functions
 alias dmesg='dmesg -e'
-alias makepkg='nice -19 makepkg'
 alias ls='ls --group-directories-first --color'
 alias ll='ls -lhF'
 alias la='ls -lha'
@@ -103,14 +106,12 @@ alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='sudo systemctl start mpd'
-alias cower='cower --ignorerepo=router'
 
 upp() {
   for i in 1 2 4 8; do
     if reflector -c US -a $i -f 5 -p http -p https -p ftp --sort rate --save /etc/pacman.d/mirrorlist.reflector; then
       cat /etc/pacman.d/mirrorlist.reflector
       sudo pacman -Syu
-      cower --ignorerepo=router -u
       return 0
     else
       echo "something is fucked up"
@@ -119,9 +120,9 @@ upp() {
 }
 
 alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
-alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 3 || return 0'
+alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
-alias pp='sudo pacman -Syu && cower --ignorerepo=router -u'
+alias pp='sudo pacman -Syu'
 
 pagrep() {
   [[ -z "$1" ]] && echo 'Define a grep string and try again' && return 1
@@ -231,9 +232,9 @@ aur() {
 justbump() {
   [[ -f PKGBUILD ]] || return 1
   source PKGBUILD
-  new=$(( pkgrel + 1 ))
-  sed -i "s/^pkgrel=.*/pkgrel=$new/" PKGBUILD
-  echo ">>>        Old pkgrel is $pkgrel and new is $new"
+  _new=$(( pkgrel + 1 ))
+  sed -i "s/^pkgrel=.*/pkgrel=$_new/" PKGBUILD
+  echo ">>>        Old pkgrel is $pkgrel and _new is $_new"
   echo
 }
 

@@ -2,9 +2,11 @@
 
 xterm*termName: xterm-256color
 
-URxvt.depth: 32
-URxvt.background: rgba:1111/1111/1111/dddd
+!transparent
+!URxvt.background: rgba:1111/1111/1111/dddd
 
+URxvt.background: #212121
+Xft.antialias:	true
 URxvt*termName:screen-256color
 URxvt*loginShell:true
 URxvt.iconFile:	/usr/share/icons/HighContrast/scalable/apps/utilities-terminal.svg
@@ -16,16 +18,15 @@ URxvt.geometry: 112x32
 URxvt.depth: 32
 URxvt.saveLines: 50000
 
-URxvt.bondFont:xft:droid sans:size=10:antialias=false:hinting=false
+URxvt.font:     xft:bitstream vera sans mono:size=10:antialias=true
+URxvt.boldFont: xft:bitstream vera sans mono:bold:size=10:antialias=true
 
-Xft.dpi:	96
-Xft.antialias:	true
+Xft.dpi:	140
 Xft.rgba:	rgb
 Xft.hinting:	true
 Xft.hintstyle:	hintfull
 
 URxvt.foreground: #FFFFFF
-URxvt.background: #212121
 URxvt.color0:     #2E3436
 URxvt.color1:     #CC0000
 URxvt.color2:     #4E9A06
