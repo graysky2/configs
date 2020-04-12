@@ -8,9 +8,11 @@ BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
 
 echo -e "\x1B]2;$(whoami)@$(uname -n)\x07";
 
-export MPD_HOST=$(ip addr show br0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
+export MAKEFLAGS=-j10
+export MPD_HOST=$(ip addr show eno1 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
 export DISTCC_DIR=/scratch/.distcc
 export CHROOTPATH64=/scratch/.chroot
+export REPO=/incoming/Remote/repo/x86_64
 
 bindkey -v
 
@@ -108,8 +110,8 @@ alias lx='sudo lxc-ls -f'
 alias mpd='sudo systemctl start mpd'
 
 upp() {
-  for i in 1 2 4 8; do
-    if reflector -c US -a $i -f 5 -p http -p https -p ftp --sort rate --save /etc/pacman.d/mirrorlist.reflector; then
+  for i in 1 3 10; do
+    if reflector -c US -a $i -f 5 -p https --sort rate --save /etc/pacman.d/mirrorlist.reflector; then
       cat /etc/pacman.d/mirrorlist.reflector
       sudo pacman -Syu
       return 0
