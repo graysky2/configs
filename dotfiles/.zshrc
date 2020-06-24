@@ -107,7 +107,7 @@ alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME
 alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
-alias mpd='sudo systemctl start mpd'
+alias mpd='systemctl --user start mpd'
 
 upp() {
   for i in 1 3 10; do
@@ -163,6 +163,9 @@ x() {
         bsdtar xzf "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.gz)
         b=$(basename "$1" .gz)
+        gunzip "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
+      *.ipk)
+        b=$(basename "$1" .ipk)
         gunzip "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.tar.xz)
         b=$(basename "$1" .tar.xz)

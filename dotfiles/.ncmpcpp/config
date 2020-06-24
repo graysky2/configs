@@ -1,5 +1,5 @@
 ##### connection settings ######
-mpd_host = ease
+mpd_host = localhost
 mpd_music_dir = /mnt/data/music/genre
 
 ##### song format #####
