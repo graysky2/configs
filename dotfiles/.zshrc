@@ -8,7 +8,7 @@ BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
 
 echo -e "\x1B]2;$(whoami)@$(uname -n)\x07";
 
-export MAKEFLAGS=-j10
+export MAKEFLAGS=-j9
 export MPD_HOST=$(ip addr show eno1 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
 export DISTCC_DIR=/scratch/.distcc
 export CHROOTPATH64=/scratch/.chroot
@@ -22,7 +22,6 @@ PATH=$PATH:$HOME/bin
 [[ -d $HOME/bin/makepkg ]] &&
 PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup
 
-[[ -x /usr/bin/archey3 ]] && archey3
 [[ -x /usr/bin/alsi ]] && alsi -a
 
 # use middle-click for pass rather than clipboard
@@ -116,7 +115,7 @@ upp() {
       sudo pacman -Syu
       return 0
     else
-      echo "something is fucked up"
+      echo "something is fucked up, waiting $i sec and trying again..."
     fi
   done
 }
@@ -229,7 +228,7 @@ bi() {
 aur() {
   [[ -f PKGBUILD ]] || return 1
   source PKGBUILD
-  mksrcinfo
+  mksrcinfo || return 1
   git commit -am "Update to $pkgver-$pkgrel"
   git push
 }
