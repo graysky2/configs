@@ -1,6 +1,0 @@
-# Write your default config options here!
-
-ubfont-autoscale=1
-font=/usr/share/mplayer/subfont.ttf
-osdlevel=3
-nosub=1

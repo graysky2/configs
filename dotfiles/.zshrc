@@ -50,11 +50,7 @@ bindkey '\e[A' up-line-or-beginning-search
 bindkey '\eOB' down-line-or-beginning-search
 bindkey '\e[B' down-line-or-beginning-search
 
-alias dh='dirs -v'
-
 # systemd aliases and functions
-alias t3='sudo systemctl isolate multi-user.target'
-alias t5='sudo systemctl isolate graphical.target'
 
 listd() {
   echo -e "${BLD}${RED} --> SYSTEM LEVEL <--${NRM}"
@@ -96,10 +92,10 @@ alias vd='vimdiff'
 alias wget='wget -c'
 alias grep='grep --color=auto'
 alias zgrep='zgrep --color=auto'
-alias rsync='noglob rsync'
-alias scp='noglob scp'
-alias git='noglob git'
-alias find='noglob find'
+#alias rsync='noglob rsync'
+#alias scp='noglob scp'
+#alias git='noglob git'
+#alias find='noglob find'
 alias ccr="cd /scratch/.chroot64/$(whoami)/build"
 
 alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND" && ps aux | grep -i'
@@ -107,6 +103,11 @@ alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='systemctl --user start mpd'
+
+alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
+alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
+alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
+alias pp='sudo pacman -Syu'
 
 upp() {
   for i in 1 3 10; do
@@ -119,11 +120,6 @@ upp() {
     fi
   done
 }
-
-alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
-alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
-alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
-alias pp='sudo pacman -Syu'
 
 pagrep() {
   [[ -z "$1" ]] && echo 'Define a grep string and try again' && return 1
@@ -233,13 +229,13 @@ aur() {
   git push
 }
 
-justbump() {
-  [[ -f PKGBUILD ]] || return 1
-  source PKGBUILD
-  _new=$(( pkgrel + 1 ))
-  sed -i "s/^pkgrel=.*/pkgrel=$_new/" PKGBUILD
-  echo ">>>        Old pkgrel is $pkgrel and _new is $_new"
-  echo
+gitup() {
+ if [[ $# == 0 ]]; then
+   release=$(. PKGBUILD && echo $pkgver-$pkgrel) || return 1
+   git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. PKGBUILD && echo $pkgver-$pkgrel)"
+ else
+   git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
+ fi
 }
 
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
