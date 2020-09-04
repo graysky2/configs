@@ -223,19 +223,28 @@ bi() {
 
 aur() {
   [[ -f PKGBUILD ]] || return 1
-  source PKGBUILD
+  # sourcing PKGBUILD with options throws an error in zsh
+  # bad set of key/value pairs for associative array
+  sed '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  . "$XDG_RUNTIME_DIR"/PKGBUILD.clean 
+  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   mksrcinfo || return 1
   git commit -am "Update to $pkgver-$pkgrel"
   git push
 }
 
 gitup() {
- if [[ $# == 0 ]]; then
-   release=$(. PKGBUILD && echo $pkgver-$pkgrel) || return 1
-   git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. PKGBUILD && echo $pkgver-$pkgrel)"
- else
-   git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
- fi
+  [[ -f PKGBUILD ]] || return 1
+  if [[ $# == 0 ]]; then
+    # sourcing PKGBUILD with options throws an error in zsh
+    # bad set of key/value pairs for associative array
+    sed '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+    release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 1
+    git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel)"
+  else
+    git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
+  fi
+  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
 }
 
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
