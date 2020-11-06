@@ -14,13 +14,16 @@ export DISTCC_DIR=/scratch/.distcc
 export CHROOTPATH64=/scratch/.chroot
 export REPO=/incoming/Remote/repo/x86_64
 
+# packages are green
+export LS_COLORS=$LS_COLORS:"*.pkg.tar.zst=01;32"
+
 bindkey -v
 
 PATH=$PATH:$HOME/bin
 
 # if on workstation extend PATH
 [[ -d $HOME/bin/makepkg ]] &&
-PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup
+  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup
 
 [[ -x /usr/bin/alsi ]] && alsi -a
 
@@ -58,7 +61,7 @@ listd() {
   [[ -d "$HOME"/.config/systemd/user/default.target.wants ]] &&
     (echo -e "${BLD}${RED} --> USER LEVEL <--${NRM}" ; \
     tree "$HOME"/.config/systemd/user)
-}
+  }
 
 # systemlevel
 start() { sudo systemctl start "$1"; }
@@ -92,12 +95,11 @@ alias vd='vimdiff'
 alias wget='wget -c'
 alias grep='grep --color=auto'
 alias zgrep='zgrep --color=auto'
-#alias rsync='noglob rsync'
-#alias scp='noglob scp'
-#alias git='noglob git'
-#alias find='noglob find'
+alias tree='tree -h'
+
 alias ccr="cd /scratch/.chroot64/$(whoami)/build"
 
+alias memrss='ps -eo comm,pmem,rss,etime --sort -rss | numfmt --header --from-unit=1024 --to=iec --field 3 | column -t | head -n20'
 alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND" && ps aux | grep -i'
 alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
@@ -110,33 +112,33 @@ alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
 alias pp='sudo pacman -Syu'
 
 upp() {
-  for i in 1 3 10; do
-    if reflector -c US -a $i -f 5 -p https --sort rate --save /etc/pacman.d/mirrorlist.reflector; then
+  for i in 1 3 6; do
+    if reflector -c US -a $i -p https -l 5 --sort score --save /etc/pacman.d/mirrorlist.reflector 2>/dev/null; then
       cat /etc/pacman.d/mirrorlist.reflector
       sudo pacman -Syu
       return 0
-    else
-      echo "something is fucked up, waiting $i sec and trying again..."
     fi
   done
+  echo "--> cannot find a single mirror with sync time in the last 6 hours"
+  return 1
 }
 
 pagrep() {
   [[ -z "$1" ]] && echo 'Define a grep string and try again' && return 1
-   find . -type f -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
+  find . -type f -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
 }
 
 fix() {
   [[ -d "$1" ]] &&
-  find "$1" -type d -print0 | xargs -0 chmod 755 && find "$1" -type f -print0 | xargs -0 chmod 644 ||
+    find "$1" -type d -print0 | xargs -0 chmod 755 && find "$1" -type f -print0 | xargs -0 chmod 644 ||
     echo "$1 is not a directory."
-}
+  }
 
 fixp() {
   [[ -d "$1" ]] &&
-  find "$1" -type d -print0 | xargs -0 chmod 700 && find "$1" -type f -print0 | xargs -0 chmod 600 ||
+    find "$1" -type d -print0 | xargs -0 chmod 700 && find "$1" -type f -print0 | xargs -0 chmod 600 ||
     echo "$1 is not a directory."
-}
+  }
 
 x() {
   if [[ -f "$1" ]]; then
@@ -214,11 +216,23 @@ FF() {
   fi
 }
 
+cpa() {
+  if [[ ! -d "/scratch/${PWD/*\//}" ]]; then
+    cp -a ../"${PWD/*\//}" /scratch
+    xfce4-terminal --geometry 128x36 --working-directory=/scratch/"${PWD/*\//}"
+  fi
+}
+
+dup() {
+  local _here=$(pwd)
+  xfce4-terminal --geometry 128x36 --working-directory="$_here"
+}
+
 bi() {
   [[ -d "$1" ]] && {
-   cp -a "$1" /scratch
-   cd /scratch/"$1"
- } || return 1
+    cp -a "$1" /scratch
+      cd /scratch/"$1"
+    } || return 1
 }
 
 aur() {
