@@ -8,11 +8,14 @@ BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
 
 echo -e "\x1B]2;$(whoami)@$(uname -n)\x07";
 
-export MAKEFLAGS=-j9
 export MPD_HOST=$(ip addr show eno1 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
-export DISTCC_DIR=/scratch/.distcc
-export CHROOTPATH64=/scratch/.chroot
+
+export MAKEFLAGS=-j9
 export REPO=/incoming/Remote/repo/x86_64
+
+export DISTCC_DIR=/scratch/.distcc
+export CCACHE_DIR=/scratch/.ccache
+export CHROOT=/scratch/.chroot
 
 # packages are green
 export LS_COLORS=$LS_COLORS:"*.pkg.tar.zst=01;32"
@@ -99,7 +102,7 @@ alias tree='tree -h'
 
 alias ccr="cd /scratch/.chroot64/$(whoami)/build"
 
-alias memrss='ps -eo comm,pmem,rss,etime --sort -rss | numfmt --header --from-unit=1024 --to=iec --field 3 | column -t | head -n20'
+alias memrss='ps -eo comm,pmem,rss,etime --sort -rss | numfmt --header --from-unit=1024 --to=iec --field 3 | head -n20 | column -t'
 alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND" && ps aux | grep -i'
 alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
@@ -244,7 +247,8 @@ aur() {
   rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   mksrcinfo || return 1
   git commit -am "Update to $pkgver-$pkgrel"
-  git push
+  #git push
+  #manually execute this to optionally edit the message
 }
 
 gitup() {
@@ -261,6 +265,14 @@ gitup() {
   rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
 }
 
+fpush() {
+  git push origin +$(git rev-parse --abbrev-ref HEAD)
+}
+
+alias gitc='git commit -av'
+alias gitrc='git rebase --continue'
+alias gits='git status'
+
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
 alias ccm='sudo ccm'
 alias hddtemp='sudo hddtemp'
@@ -272,13 +284,10 @@ signit() {
     echo "Provide a filename and try again."
   else
     file="$1"
-    target_dts=$(date -d "$(stat -c %Y $file | awk '{print strftime("%c",$1)}')" +%Y%m%d%H%M.%S) && \
-      gpg --detach-sign --local-user 5EE46C4C "$file" && \
-      touch -t "$target_dts" "$file.sig"
+    target_dts=$(date -d "$(stat -c %Y $file | awk '{print strftime("%c",$1)}')" +%Y%m%d%H%M.%S) &&
+      gpg --detach-sign --local-user 5EE46C4C "$file" && touch -t "$target_dts" "$file.sig"
   fi
 }
-
-alias gitc='git commit -av'
 
 clone() {
   [[ -z "$1" ]] && echo "provide a repo name" && return 1
@@ -293,7 +302,7 @@ clone() {
 
 # my svn alternative to ABS
 # https://github.com/graysky2/getpkg
-[[ -f /home/stuff/my_pkgbuild_files/getpkg/getpkg ]] && \
+[[ -f /home/stuff/my_pkgbuild_files/getpkg/getpkg ]] &&
   . /home/stuff/my_pkgbuild_files/getpkg/getpkg
 
 # ssh shortcuts
