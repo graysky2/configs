@@ -18,7 +18,7 @@ export CCACHE_DIR=/scratch/.ccache
 export CHROOT=/scratch/.chroot
 
 # packages are green
-export LS_COLORS=$LS_COLORS:"*.pkg.tar.zst=01;32"
+export LS_COLORS=$LS_COLORS:"*.tar.zst=01;32"
 
 bindkey -v
 
@@ -113,6 +113,11 @@ alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || ech
 alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
 alias pp='sudo pacman -Syu'
+
+findi() {
+  [[ -n "$i" ]] || return 1
+  find . -type f -name "$i"
+}
 
 upp() {
   for i in 1 3 6; do
