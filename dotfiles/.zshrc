@@ -1,4 +1,4 @@
-# ~/.zshrc
+# ~.zshrc
 # works in conjunction with extra/grml-zsh-config
 #
 # general setup stuff
@@ -8,31 +8,28 @@ BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
 
 echo -e "\x1B]2;$(whoami)@$(uname -n)\x07";
 
-export MPD_HOST=$(ip addr show eno1 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
-
-export MAKEFLAGS=-j9
+export MPD_HOST=$(ip addr show enp42s0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
+export MAKEFLAGS=-j33
 export REPO=/incoming/Remote/repo/x86_64
-
 export DISTCC_DIR=/scratch/.distcc
-export CCACHE_DIR=/scratch/.ccache
-export CHROOT=/scratch/.chroot
+#export CCACHE_DIR=/scratch/.ccache
+export BROOT=/scratch/.buildroot/$(whoami)
 
 # packages are green
 export LS_COLORS=$LS_COLORS:"*.tar.zst=01;32"
 
-bindkey -v
-
-PATH=$PATH:$HOME/bin
-
-# if on workstation extend PATH
-[[ -d $HOME/bin/makepkg ]] &&
-  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup
-
-[[ -x /usr/bin/alsi ]] && alsi -a
-
 # use middle-click for pass rather than clipboard
 export PASSWORD_STORE_X_SELECTION=primary
 export PASSWORD_STORE_CLIP_TIME=10
+
+bindkey -v
+
+PATH=$PATH:$HOME/bin
+# if on workstation extend PATH
+[[ -d $HOME/bin/makepkg ]] &&
+  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup:$HOME/bin/stress
+
+[[ -x /usr/bin/alsi ]] && alsi -a
 
 # history stuff
 HISTFILE=$HOME/.zsh_history
@@ -57,7 +54,6 @@ bindkey '\eOB' down-line-or-beginning-search
 bindkey '\e[B' down-line-or-beginning-search
 
 # systemd aliases and functions
-
 listd() {
   echo -e "${BLD}${RED} --> SYSTEM LEVEL <--${NRM}"
   tree /etc/systemd/system
@@ -100,8 +96,6 @@ alias grep='grep --color=auto'
 alias zgrep='zgrep --color=auto'
 alias tree='tree -h'
 
-alias ccr="cd /scratch/.chroot64/$(whoami)/build"
-
 alias memrss='ps -eo comm,pmem,rss,etime --sort -rss | numfmt --header --from-unit=1024 --to=iec --field 3 | head -n20 | column -t'
 alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND" && ps aux | grep -i'
 alias ma='cd /home/stuff/aur4'
@@ -114,12 +108,31 @@ alias bb='sudo bleachbit --clean system.cache system.localizations system.trash 
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
 alias pp='sudo pacman -Syu'
 
+gclean() {
+  [[ -d .git ]] || return 1
+  du -sh .git
+  git remote prune origin ; git repack && git prune-packed &&
+    git reflog expire --expire=1.month.ago && git gc --aggressive
+  du -sh .git
+}
+
+runtime() {
+  # how long has a process been running
+  [[ -n "$1" ]] || return 1
+  if pidof -q -x "$1"; then
+    ps --no-headers -o %t $(pidof -x "$1" | awk '{ print $(NF) }')
+  else
+    return 1
+  fi
+}
+
 findi() {
   [[ -n "$i" ]] || return 1
   find . -type f -name "$i"
 }
 
 upp() {
+  # update mirror list via reflector
   for i in 1 3 6; do
     if reflector -c US -a $i -p https -l 5 --sort score --save /etc/pacman.d/mirrorlist.reflector 2>/dev/null; then
       cat /etc/pacman.d/mirrorlist.reflector
@@ -132,21 +145,28 @@ upp() {
 }
 
 pagrep() {
-  [[ -z "$1" ]] && echo 'Define a grep string and try again' && return 1
+  # find lerm looking in all files under current dir
+  [[ -n "$1" ]] || return 1
   find . -type f -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
+}
+
+fixo() {
+  [[ -d "$1" ]] &&
+    find "$1" -type d -print0 | xargs -0 chmod 755 && find "$1" -type f -print0 | xargs -0 chmod 644 ||
+    echo "$1 is not a directory."
 }
 
 fix() {
   [[ -d "$1" ]] &&
-    find "$1" -type d -print0 | xargs -0 chmod 755 && find "$1" -type f -print0 | xargs -0 chmod 644 ||
+    find "$1" -type d -print0 | xargs -0 chmod 750 && find "$1" -type f -print0 | xargs -0 chmod 640 ||
     echo "$1 is not a directory."
-  }
+}
 
 fixp() {
   [[ -d "$1" ]] &&
     find "$1" -type d -print0 | xargs -0 chmod 700 && find "$1" -type f -print0 | xargs -0 chmod 600 ||
     echo "$1 is not a directory."
-  }
+}
 
 x() {
   if [[ -f "$1" ]]; then
@@ -217,8 +237,9 @@ x() {
 ## more specific
 
 FF() {
+  # find file names matching first token and list them by date
   if [[ -n "$1" ]]; then
-    find . -type f -printf "%TY%Tm%Td\t%p\n" | sort| grep -i "$1"
+    find . -type f -printf "%TY%Tm%Td\t%p\n" | sort | grep -i "$1"
   else
     return 1
   fi
@@ -261,7 +282,8 @@ gitup() {
   if [[ $# == 0 ]]; then
     # sourcing PKGBUILD with options throws an error in zsh
     # bad set of key/value pairs for associative array
-    sed '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+    # + sign also fucks up
+    sed -e 's/git+htt.*$//'g -e '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
     release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 1
     git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel)"
   else
@@ -297,7 +319,6 @@ signit() {
 clone() {
   [[ -z "$1" ]] && echo "provide a repo name" && return 1
   git clone git://github.com/graysky2/"$1".git
-  #git clone --depth 1 https://github.com/graysky2/"$1".git
   cd "$1"
   [[ ! -f .git/config ]] && echo "no git config" && return 1
   grep git: .git/config &>/dev/null
@@ -315,12 +336,12 @@ alias sbe="$HOME/bin/s be"
 alias sba="$HOME/bin/s ba"
 
 alias sm="$HOME/bin/s m"
+alias sa="$HOME/bin/s a"
 alias sS="$HOME/bin/s S"
 
+alias se="$HOME/bin/s e"
 alias sc="$HOME/bin/s c"
 alias sd="$HOME/bin/s d"
-alias sr="$HOME/bin/s r"
-alias sw="$HOME/bin/s w"
 alias sv="$HOME/bin/s v"
 alias ssu="$HOME/bin/s sub"
 alias sod="$HOME/bin/s sod"
