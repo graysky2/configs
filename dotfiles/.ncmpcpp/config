@@ -53,3 +53,12 @@ current_item_prefix = "$(yellow)$r"
 current_item_suffix = "$/r$(end)"
 window_border_color = white
 active_window_border = magenta
+
+visualizer_data_source = "/tmp/mpd.fifo"
+visualizer_output_name = "my_fifo"
+visualizer_in_stereo = "yes"
+#visualizer_type = "spectrum"
+#visualizer_type = "ellipse"
+visualizer_type = "wave_filled"
+#visualizer_type = "wave"
+visualizer_look = "+|"

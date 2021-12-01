@@ -12,8 +12,6 @@ export MPD_HOST=$(ip addr show enp42s0 | grep -m1 inet | awk -F' ' '{print $2}' 
 export MAKEFLAGS=-j33
 export REPO=/incoming/Remote/repo/x86_64
 export DISTCC_DIR=/scratch/.distcc
-#export CCACHE_DIR=/scratch/.ccache
-export BROOT=/scratch/.buildroot/$(whoami)
 
 # packages are green
 export LS_COLORS=$LS_COLORS:"*.tar.zst=01;32"
@@ -77,7 +75,8 @@ ustatus() { systemctl --user status "$1"; }
 uenabled() { systemctl --user enable "$1"; }
 udisabled() { systemctl --user disable "$1"; }
 
-# general aliases and functions
+## general aliases and functions
+
 alias dmesg='dmesg -e'
 alias ls='ls --group-directories-first --color'
 alias ll='ls -lhF'
@@ -91,7 +90,6 @@ alias xx='exit'
 alias scp='scp -p'
 alias v='vim'
 alias vd='vimdiff'
-alias wget='wget -c'
 alias grep='grep --color=auto'
 alias zgrep='zgrep --color=auto'
 alias tree='tree -h'
@@ -102,19 +100,12 @@ alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='systemctl --user start mpd'
+alias kmpd='systemctl --user stop mpd'
 
 alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
 alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
 alias pp='sudo pacman -Syu'
-
-gclean() {
-  [[ -d .git ]] || return 1
-  du -sh .git
-  git remote prune origin ; git repack && git prune-packed &&
-    git reflog expire --expire=1.month.ago && git gc --aggressive
-  du -sh .git
-}
 
 runtime() {
   # how long has a process been running
@@ -234,6 +225,54 @@ x() {
   fi
 }
 
+## git stuff
+
+gitup() {
+  [[ -f PKGBUILD ]] || return 1
+  if [[ $# == 0 ]]; then
+    # sourcing PKGBUILD with options throws an error in zsh
+    # bad set of key/value pairs for associative array
+    # + sign also fucks up
+    sed -e 's/git+htt.*$//'g -e '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+    release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 1
+    git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel)"
+  else
+    git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
+  fi
+  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+}
+
+fpush() {
+  git push origin +$(git rev-parse --abbrev-ref HEAD)
+}
+
+gitd() {
+  if [[ -z "$1" ]]; then
+    echo "gitd = git delete (branch)"
+    git branch
+  else
+    git branch -D "$1"
+    git push origin :"$1"
+  fi
+}
+
+gclean() {
+  [[ -d .git ]] || return 1
+  du -sh .git
+  git remote prune origin ; git repack && git prune-packed &&
+    git reflog expire --expire=1.month.ago && git gc --aggressive
+  du -sh .git
+}
+
+alias gitc='git commit -av'
+alias gitrc='git rebase --continue'
+alias gits='git status'
+
+# my svn alternative to ABS
+# https://github.com/graysky2/getpkg
+[[ -f /home/stuff/my_pkgbuild_files/getpkg/getpkg ]] &&
+  . /home/stuff/my_pkgbuild_files/getpkg/getpkg
+
 ## more specific
 
 FF() {
@@ -277,29 +316,6 @@ aur() {
   #manually execute this to optionally edit the message
 }
 
-gitup() {
-  [[ -f PKGBUILD ]] || return 1
-  if [[ $# == 0 ]]; then
-    # sourcing PKGBUILD with options throws an error in zsh
-    # bad set of key/value pairs for associative array
-    # + sign also fucks up
-    sed -e 's/git+htt.*$//'g -e '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
-    release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 1
-    git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel)"
-  else
-    git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
-  fi
-  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
-}
-
-fpush() {
-  git push origin +$(git rev-parse --abbrev-ref HEAD)
-}
-
-alias gitc='git commit -av'
-alias gitrc='git rebase --continue'
-alias gits='git status'
-
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
 alias ccm='sudo ccm'
 alias hddtemp='sudo hddtemp'
@@ -308,7 +324,7 @@ alias nets2='sudo lsof -i'
 
 signit() {
   if [[ -z "$1" ]]; then
-    echo "Provide a filename and try again."
+    echo "Provide a filename and try again." && return 1
   else
     file="$1"
     target_dts=$(date -d "$(stat -c %Y $file | awk '{print strftime("%c",$1)}')" +%Y%m%d%H%M.%S) &&
@@ -326,12 +342,8 @@ clone() {
   sed -i '/url =/ s,://github.com/,@github.com:,' .git/config
 }
 
-# my svn alternative to ABS
-# https://github.com/graysky2/getpkg
-[[ -f /home/stuff/my_pkgbuild_files/getpkg/getpkg ]] &&
-  . /home/stuff/my_pkgbuild_files/getpkg/getpkg
+## ssh shortcuts
 
-# ssh shortcuts
 alias sbe="$HOME/bin/s be"
 alias sba="$HOME/bin/s ba"
 
