@@ -1,3 +1,4 @@
+autocmd BufEnter *.in set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter *.sh set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter PKGBUILD set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter *.install set ai sw=2 ts=2 sta et fo=croql
@@ -11,8 +12,6 @@ let g:jellybeans_use_term_italics = 1
 
 set autoindent
 set smartindent
-"set tabstop=2
-"set shiftwidth=2
 
 syntax on
 filetype indent on

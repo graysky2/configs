@@ -6,10 +6,13 @@
 # pretty colors
 BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
 
-echo -e "\x1B]2;$(whoami)@$(uname -n)\x07";
+# set zsh prompt
+#autoload -U promptinit && promptinit
+#prompt adam1
 
 export MPD_HOST=$(ip addr show enp42s0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
 export MAKEFLAGS=-j33
+alias make='nice -19 make'
 export REPO=/incoming/Remote/repo/x86_64
 export DISTCC_DIR=/scratch/.distcc
 
@@ -106,6 +109,17 @@ alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || ech
 alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
 alias pp='sudo pacman -Syu'
+alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
+
+outthere() {
+  [[ -n "$1" ]] || return 1
+  _test=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.15.$1-rc1.xz|cut -c1-3)
+  if [[ $_test -eq 404 ]]; then
+    echo "not yet"
+  else
+    echo "available"
+  fi
+}
 
 runtime() {
   # how long has a process been running
@@ -119,6 +133,7 @@ runtime() {
 
 findi() {
   [[ -n "$i" ]] || return 1
+  echo
   find . -type f -name "$i"
 }
 
@@ -138,7 +153,7 @@ upp() {
 pagrep() {
   # find lerm looking in all files under current dir
   [[ -n "$1" ]] || return 1
-  find . -type f -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
+  find . -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
 }
 
 fixo() {
@@ -232,9 +247,9 @@ gitup() {
   if [[ $# == 0 ]]; then
     # sourcing PKGBUILD with options throws an error in zsh
     # bad set of key/value pairs for associative array
-    # + sign also fucks up
-    sed -e 's/git+htt.*$//'g -e '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
-    release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 1
+    # + sign and ? also fucks up
+    sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g -e '/^options=/d' -e 's/?//g' -e '/CFLAGS/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+    release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 2
     git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel)"
   else
     git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
@@ -305,15 +320,12 @@ bi() {
 
 aur() {
   [[ -f PKGBUILD ]] || return 1
-  # sourcing PKGBUILD with options throws an error in zsh
-  # bad set of key/value pairs for associative array
-  sed '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  # same comments as above in aur function
+  sed -e 's/git+htt.*$//'g -e '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   . "$XDG_RUNTIME_DIR"/PKGBUILD.clean 
   rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   mksrcinfo || return 1
   git commit -am "Update to $pkgver-$pkgrel"
-  #git push
-  #manually execute this to optionally edit the message
 }
 
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
@@ -329,6 +341,17 @@ signit() {
     file="$1"
     target_dts=$(date -d "$(stat -c %Y $file | awk '{print strftime("%c",$1)}')" +%Y%m%d%H%M.%S) &&
       gpg --detach-sign --local-user 5EE46C4C "$file" && touch -t "$target_dts" "$file.sig"
+  fi
+}
+
+readyit() {
+  if [[ -z "$1" ]]; then
+    echo "Provide a filename and try again." && return 1
+  else
+    file="$1"
+    zstd -c -T0 -q -18 - <"$file" >"$file".zst
+    target_dts=$(date -d "$(stat -c %Y $file | awk '{print strftime("%c",$1)}')" +%Y%m%d%H%M.%S)
+    gpg --detach-sign --local-user 5EE46C4C "$file.zst" && touch -t "$target_dts" "$file.zst.sig"
   fi
 }
 
@@ -359,10 +382,8 @@ alias ssu="$HOME/bin/s sub"
 alias sod="$HOME/bin/s sod"
 alias s3="$HOME/bin/s s3"
 
-alias sp="$HOME/bin/s p"
-alias sp1="$HOME/bin/s p1"
-alias sp2="$HOME/bin/s p2"
-alias sp3="$HOME/bin/s p3"
+alias sp="$HOME/bin/s p2"
+#alias sp2="$HOME/bin/s p2"
 
 alias sa="$HOME/bin/s a"
 alias sj="$HOME/bin/s j"
