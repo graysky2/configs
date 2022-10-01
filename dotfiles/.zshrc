@@ -4,7 +4,7 @@
 # general setup stuff
 
 # pretty colors
-BLD="\e[01m" RED="\e[01;31m" NRM="\e[00m"
+BLD="\e[01m" RED="\e[01;31m" GREEN="\e[1;32m" NRM="\e[00m"
 
 # set zsh prompt
 #autoload -U promptinit && promptinit
@@ -78,8 +78,7 @@ ustatus() { systemctl --user status "$1"; }
 uenabled() { systemctl --user enable "$1"; }
 udisabled() { systemctl --user disable "$1"; }
 
-## general aliases and functions
-
+## general
 alias dmesg='dmesg -e'
 alias ls='ls --group-directories-first --color'
 alias ll='ls -lhF'
@@ -96,29 +95,37 @@ alias vd='vimdiff'
 alias grep='grep --color=auto'
 alias zgrep='zgrep --color=auto'
 alias tree='tree -h'
-
 alias memrss='ps -eo comm,pmem,rss,etime --sort -rss | numfmt --header --from-unit=1024 --to=iec --field 3 | head -n20 | column -t'
 alias pg='echo "USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND" && ps aux | grep -i'
+alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
+alias pp='sudo pacman -Syu'
+alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
+alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
+
+## less general
 alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='systemctl --user start mpd'
 alias kmpd='systemctl --user stop mpd'
-
-alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || echo "no orphans to remove"'
-alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
-alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
-alias pp='sudo pacman -Syu'
 alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
+alias dup='xfce4-terminal --geometry "${COLUMNS}x${LINES}" --working-directory="$(pwd)"'
+alias p='patch -p1 -i '
 
 outthere() {
   [[ -n "$1" ]] || return 1
-  _test=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.15.$1-rc1.xz|cut -c1-3)
-  if [[ $_test -eq 404 ]]; then
-    echo "not yet"
-  else
-    echo "available"
-  fi
+
+  _rctest=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.15.$1-rc1.xz|cut -c1-3)
+  _sttest=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/patch-5.15.$1.xz|cut -c1-3)
+  [[ $_sttest -eq 404 ]] && _st="${RED}no${NRM}" || _st="${GREEN}yes${NRM}"
+  [[ $_rctest -eq 404 ]] && _rc="${RED}no${NRM}" || _rc="${GREEN}yes${NRM}"
+  echo "5.15.$1-rc1 available : $_rc"
+  echo "5.15.$1 available     : $_st"
+  [[ $_sttest -ne 404 ]] && {
+    echo 
+    echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/log/?h=v5.15.$1"
+    echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/diff/arch/x86/Kconfig?id=v5.15.$1&id2=v5.15.$((i=$1-1))"
+    }
 }
 
 runtime() {
@@ -257,6 +264,16 @@ gitup() {
   rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
 }
 
+aur() {
+  [[ -f PKGBUILD ]] || return 1
+  # same comments as above
+  sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g -e '/^options=/d' -e 's/?//g' -e '/CFLAGS/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  . "$XDG_RUNTIME_DIR"/PKGBUILD.clean 
+  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  mksrcinfo || return 1
+  git commit -am "Update to $pkgver-$pkgrel"
+}
+
 fpush() {
   git push origin +$(git rev-parse --abbrev-ref HEAD)
 }
@@ -306,26 +323,12 @@ cpa() {
   fi
 }
 
-dup() {
-  local _here=$(pwd)
-  xfce4-terminal --geometry 128x36 --working-directory="$_here"
-}
 
 bi() {
   [[ -d "$1" ]] && {
     cp -a "$1" /scratch
       cd /scratch/"$1"
     } || return 1
-}
-
-aur() {
-  [[ -f PKGBUILD ]] || return 1
-  # same comments as above in aur function
-  sed -e 's/git+htt.*$//'g -e '/^options=/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
-  . "$XDG_RUNTIME_DIR"/PKGBUILD.clean 
-  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
-  mksrcinfo || return 1
-  git commit -am "Update to $pkgver-$pkgrel"
 }
 
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
