@@ -6,6 +6,8 @@
 # pretty colors
 BLD="\e[01m" RED="\e[01;31m" GREEN="\e[1;32m" NRM="\e[00m"
 
+[[ -f /etc/profile.d/shonenjump.zsh ]] && source /etc/profile.d/shonenjump.zsh
+
 # set zsh prompt
 #autoload -U promptinit && promptinit
 #prompt adam1
@@ -111,21 +113,23 @@ alias kmpd='systemctl --user stop mpd'
 alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
 alias dup='xfce4-terminal --geometry "${COLUMNS}x${LINES}" --working-directory="$(pwd)"'
 alias p='patch -p1 -i '
+alias ins='sudo pacman -U $1'
 
 outthere() {
   [[ -n "$1" ]] || return 1
-
   _rctest=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.15.$1-rc1.xz|cut -c1-3)
   _sttest=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/patch-5.15.$1.xz|cut -c1-3)
-  [[ $_sttest -eq 404 ]] && _st="${RED}no${NRM}" || _st="${GREEN}yes${NRM}"
   [[ $_rctest -eq 404 ]] && _rc="${RED}no${NRM}" || _rc="${GREEN}yes${NRM}"
+  [[ $_sttest -eq 404 ]] && _st="${RED}no${NRM}" || _st="${GREEN}yes${NRM}"
   echo "5.15.$1-rc1 available : $_rc"
   echo "5.15.$1 available     : $_st"
   [[ $_sttest -ne 404 ]] && {
     echo 
     echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/log/?h=v5.15.$1"
     echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/diff/arch/x86/Kconfig?id=v5.15.$1&id2=v5.15.$((i=$1-1))"
+    echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/diff/arch/arm64/Kconfig?id=v5.15.$1&id2=v5.15.$((i=$1-1))"
     }
+  return 0
 }
 
 runtime() {
@@ -238,6 +242,9 @@ x() {
       *.deb)
         b=$(basename "$1" .deb)
         ar x "$1" && return 0 ;;
+      *.rpm)
+        b=$(basename "$1" .rpm)
+        rpmextract.sh "$1" && return 0 ;;
       *) echo "don't know how to extract '$1'..." && return 1 ;;
     esac
     return 0
@@ -267,7 +274,7 @@ gitup() {
 aur() {
   [[ -f PKGBUILD ]] || return 1
   # same comments as above
-  sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g -e '/^options=/d' -e 's/?//g' -e '/CFLAGS/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g -e '/^options=/d' -e 's/?//g' -e '/CFLAGS/d' -e '/CXXFLAGS/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   . "$XDG_RUNTIME_DIR"/PKGBUILD.clean 
   rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   mksrcinfo || return 1
@@ -376,6 +383,7 @@ alias sba="$HOME/bin/s ba"
 alias sm="$HOME/bin/s m"
 alias sa="$HOME/bin/s a"
 alias sS="$HOME/bin/s S"
+alias sS2="$HOME/bin/s Stwo"
 
 alias se="$HOME/bin/s e"
 alias sc="$HOME/bin/s c"
@@ -388,7 +396,7 @@ alias s3="$HOME/bin/s s3"
 alias sp="$HOME/bin/s p2"
 #alias sp2="$HOME/bin/s p2"
 
-alias sa="$HOME/bin/s a"
+alias sr="$HOME/bin/s r"
 alias sj="$HOME/bin/s j"
 alias sj2="$HOME/bin/s j2"
 alias srepo="$HOME/bin/s repo"
