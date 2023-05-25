@@ -307,11 +307,6 @@ alias gitc='git commit -av'
 alias gitrc='git rebase --continue'
 alias gits='git status'
 
-# my svn alternative to ABS
-# https://github.com/graysky2/getpkg
-[[ -f /home/stuff/my_pkgbuild_files/getpkg/getpkg ]] &&
-  . /home/stuff/my_pkgbuild_files/getpkg/getpkg
-
 ## more specific
 
 FF() {
@@ -336,6 +331,14 @@ bi() {
     cp -a "$1" /scratch
       cd /scratch/"$1"
     } || return 1
+}
+
+getpkg() {
+  if [[ -n "$1" ]]; then
+    git clone https://gitlab.archlinux.org/archlinux/packaging/packages/$1.git && cd $1
+  else
+    return 2
+  fi
 }
 
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
@@ -367,7 +370,7 @@ readyit() {
 
 clone() {
   [[ -z "$1" ]] && echo "provide a repo name" && return 1
-  git clone git://github.com/graysky2/"$1".git
+  git clone git@github.com:graysky2/"$1".git || return 1
   cd "$1"
   [[ ! -f .git/config ]] && echo "no git config" && return 1
   grep git: .git/config &>/dev/null
