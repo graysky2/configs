@@ -1,33 +1,31 @@
-# ~.zshrc
+# ~/.zshrc
 # works in conjunction with extra/grml-zsh-config
 #
 # general setup stuff
-
 # pretty colors
 BLD="\e[01m" RED="\e[01;31m" GREEN="\e[1;32m" NRM="\e[00m"
+bindkey -v
+[[ -z "$PS1" ]] && return
+[[ -f /etc/profile ]] && . /etc/profile
 
-[[ -f /etc/profile.d/shonenjump.zsh ]] && source /etc/profile.d/shonenjump.zsh
+PATH=$PATH:$HOME/bin
+TERM=xterm-256color
 
-# set zsh prompt
-#autoload -U promptinit && promptinit
-#prompt adam1
-
+export REPORTMEMORY=10
+export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh
 export MPD_HOST=$(ip addr show enp42s0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
 export MAKEFLAGS=-j33
-alias make='nice -19 make'
 export REPO=/incoming/Remote/repo/x86_64
 export DISTCC_DIR=/scratch/.distcc
 
 # packages are green
 export LS_COLORS=$LS_COLORS:"*.tar.zst=01;32"
+export LS_COLORS=$LS_COLORS:"*.ipk=01;32"
 
 # use middle-click for pass rather than clipboard
 export PASSWORD_STORE_X_SELECTION=primary
 export PASSWORD_STORE_CLIP_TIME=10
 
-bindkey -v
-
-PATH=$PATH:$HOME/bin
 # if on workstation extend PATH
 [[ -d $HOME/bin/makepkg ]] &&
   PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup:$HOME/bin/stress
@@ -36,8 +34,8 @@ PATH=$PATH:$HOME/bin
 
 # history stuff
 HISTFILE=$HOME/.zsh_history
-HISTSIZE=10000
-SAVEHIST=10000
+HISTSIZE=30000
+SAVEHIST=30000
 setopt append_history
 setopt hist_expire_dups_first
 setopt hist_ignore_space
@@ -81,6 +79,8 @@ uenabled() { systemctl --user enable "$1"; }
 udisabled() { systemctl --user disable "$1"; }
 
 ## general
+alias ncdu='ncdu --color dark-bg'
+alias make='nice -19 make'
 alias dmesg='dmesg -e'
 alias ls='ls --group-directories-first --color'
 alias ll='ls -lhF'
@@ -114,23 +114,6 @@ alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
 alias dup='xfce4-terminal --geometry "${COLUMNS}x${LINES}" --working-directory="$(pwd)"'
 alias p='patch -p1 -i '
 alias ins='sudo pacman -U $1'
-
-outthere() {
-  [[ -n "$1" ]] || return 1
-  _rctest=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/stable-review/patch-5.15.$1-rc1.xz|cut -c1-3)
-  _sttest=$(curl -o /dev/null --silent -Iw '%{http_code}' https://mirrors.edge.kernel.org/pub/linux/kernel/v5.x/patch-5.15.$1.xz|cut -c1-3)
-  [[ $_rctest -eq 404 ]] && _rc="${RED}no${NRM}" || _rc="${GREEN}yes${NRM}"
-  [[ $_sttest -eq 404 ]] && _st="${RED}no${NRM}" || _st="${GREEN}yes${NRM}"
-  echo "5.15.$1-rc1 available : $_rc"
-  echo "5.15.$1 available     : $_st"
-  [[ $_sttest -ne 404 ]] && {
-    echo 
-    echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/log/?h=v5.15.$1"
-    echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/diff/arch/x86/Kconfig?id=v5.15.$1&id2=v5.15.$((i=$1-1))"
-    echo "  https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/diff/arch/arm64/Kconfig?id=v5.15.$1&id2=v5.15.$((i=$1-1))"
-    }
-  return 0
-}
 
 runtime() {
   # how long has a process been running
@@ -238,7 +221,7 @@ x() {
         7z x "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.zst)
         b=$(basename "$1" .zst)
-        tar xf "$1" && return 0 ;;
+        zstd -d "$1" && return 0 ;;
       *.deb)
         b=$(basename "$1" .deb)
         ar x "$1" && return 0 ;;
@@ -325,7 +308,6 @@ cpa() {
   fi
 }
 
-
 bi() {
   [[ -d "$1" ]] && {
     cp -a "$1" /scratch
@@ -335,7 +317,15 @@ bi() {
 
 getpkg() {
   if [[ -n "$1" ]]; then
-    git clone https://gitlab.archlinux.org/archlinux/packaging/packages/$1.git && cd $1
+    if [[ ! -d "$1"-main ]]; then
+      if [[ ! -f "$1"-main.tar.gz ]]; then
+        wget --quiet https://gitlab.archlinux.org/archlinux/packaging/packages/"$1"/-/archive/main/"$1"-main.tar.gz || return 1
+      fi
+      tar zxf "$1"-main.tar.gz
+      rm -f "$1"-main.tar.gz
+    fi
+    cd "$1"-main
+    #git clone https://gitlab.archlinux.org/archlinux/packaging/packages/$1.git && cd $1
   else
     return 2
   fi
@@ -399,6 +389,7 @@ alias s3="$HOME/bin/s s3"
 alias sp="$HOME/bin/s p2"
 #alias sp2="$HOME/bin/s p2"
 
+alias sgl="$HOME/bin/s gl"
 alias sr="$HOME/bin/s r"
 alias sj="$HOME/bin/s j"
 alias sj2="$HOME/bin/s j2"
