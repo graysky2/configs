@@ -1,4 +1,5 @@
 # ~/.zshrc
+
 # works in conjunction with extra/grml-zsh-config
 #
 # general setup stuff
@@ -6,14 +7,17 @@
 BLD="\e[01m" RED="\e[01;31m" GREEN="\e[1;32m" NRM="\e[00m"
 bindkey -v
 [[ -z "$PS1" ]] && return
-[[ -f /etc/profile ]] && . /etc/profile
+[[ -f /etc/profile ]] && source /etc/profile
+
+feeds=/scratch/union/feeds/packages
 
 PATH=$PATH:$HOME/bin
 TERM=xterm-256color
 
-export REPORTMEMORY=10
+#export REPORTMEMORY=10
+REPORTTIME=1
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh
-export MPD_HOST=$(ip addr show enp42s0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
+#export MPD_HOST=$(ip addr show enp13s0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
 export MAKEFLAGS=-j33
 export REPO=/incoming/Remote/repo/x86_64
 export DISTCC_DIR=/scratch/.distcc
@@ -28,14 +32,14 @@ export PASSWORD_STORE_CLIP_TIME=10
 
 # if on workstation extend PATH
 [[ -d $HOME/bin/makepkg ]] &&
-  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/backup:$HOME/bin/stress
+  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots::$HOME/bin/stress
 
 [[ -x /usr/bin/alsi ]] && alsi -a
 
 # history stuff
 HISTFILE=$HOME/.zsh_history
-HISTSIZE=30000
-SAVEHIST=30000
+HISTSIZE=300000
+SAVEHIST=300000
 setopt append_history
 setopt hist_expire_dups_first
 setopt hist_ignore_space
@@ -79,8 +83,11 @@ uenabled() { systemctl --user enable "$1"; }
 udisabled() { systemctl --user disable "$1"; }
 
 ## general
+pacgraph() { expac -H M '%m\t%n' | sort -h -r | less }
+
 alias ncdu='ncdu --color dark-bg'
-alias make='nice -19 make'
+alias make='nice -n 19 make'
+alias makepkg='nice -n 19 makepkg'
 alias dmesg='dmesg -e'
 alias ls='ls --group-directories-first --color'
 alias ll='ls -lhF'
@@ -103,17 +110,23 @@ alias orphans='[[ -n $(pacman -Qdt) ]] && sudo pacman -Rs $(pacman -Qdtq) || ech
 alias pp='sudo pacman -Syu'
 alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
-
+alias rz='find . -type f -size 0 -delete'
 ## less general
 alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='systemctl --user start mpd'
 alias kmpd='systemctl --user stop mpd'
-alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
+#alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
 alias dup='xfce4-terminal --geometry "${COLUMNS}x${LINES}" --working-directory="$(pwd)"'
 alias p='patch -p1 -i '
 alias ins='sudo pacman -U $1'
+alias findd='find . -type d | grep $1'
+oi() {
+  # open in
+  [[ -n "$1" ]] || return 1
+  xfce4-terminal --geometry 128x36 --working-directory=$1
+}
 
 runtime() {
   # how long has a process been running
@@ -128,13 +141,23 @@ runtime() {
 findi() {
   [[ -n "$i" ]] || return 1
   echo
-  find . -type f -name "$i"
+  #find . -type f -name "$i"
+  find . -type f -name "${i##*/}"
+}
+
+deli() {
+  [[ -n "$i" ]] || return 1
+  output=$(find . -type f -name "$i")
+  { read -r _live; read -r _git; } <<< "$output"
+  git rm -f "$_git"
+  rm -f "$_live"
+  echo ${git/.\/target\/linux\/}
 }
 
 upp() {
   # update mirror list via reflector
   for i in 1 3 6; do
-    if reflector -c US -a $i -p https -l 5 --sort score --save /etc/pacman.d/mirrorlist.reflector 2>/dev/null; then
+    if reflector -c US -a $i -p https -l 10 --sort score --save /etc/pacman.d/mirrorlist.reflector 2>/dev/null; then
       cat /etc/pacman.d/mirrorlist.reflector
       sudo pacman -Syu
       return 0
@@ -147,7 +170,7 @@ upp() {
 pagrep() {
   # find lerm looking in all files under current dir
   [[ -n "$1" ]] || return 1
-  find . -type f -not -iwholename '*.git*' -print0 | xargs -0 grep --color=auto "$1"
+  find . -type f -not -iwholename '*.git*' -not -iwholename '*.patch' -print0 | xargs -0 grep --color=auto "$1"
 }
 
 fixo() {
@@ -221,7 +244,7 @@ x() {
         7z x "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.zst)
         b=$(basename "$1" .zst)
-        zstd -d "$1" && return 0 ;;
+        tar --use-compress-program=unzstd -xf "$1" && return 0 ;;
       *.deb)
         b=$(basename "$1" .deb)
         ar x "$1" && return 0 ;;
@@ -239,34 +262,53 @@ x() {
 
 ## git stuff
 
-gitup() {
-  [[ -f PKGBUILD ]] || return 1
-  if [[ $# == 0 ]]; then
+_extractdata() {
     # sourcing PKGBUILD with options throws an error in zsh
     # bad set of key/value pairs for associative array
     # + sign and ? also fucks up
-    sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g -e '/^options=/d' -e 's/?//g' -e '/CFLAGS/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+    # things like !debug and !strip can fuck it up
+  sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g \
+    -e 's/?//g' \
+    -e '/![a-z]/d' \
+    -e '/CFLAGS/d' -e '/CXXFLAGS/d' \
+    -e '/source=/,$d' \
+    PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+}
+
+gitup() {
+  [[ -f PKGBUILD ]] || return 1
+  if [[ $# == 0 ]]; then
+    _extractdata || return 1
     release=$(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel) || return 2
     git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$") to $(. "$XDG_RUNTIME_DIR"/PKGBUILD.clean && echo $pkgver-$pkgrel)"
   else
     git commit -am "$(pwd | grep -Po "[^/]+/[^/]+\$"): $*"
   fi
-  rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  unset pkgver pkgrel
+}
+
+gsqu() {
+  echo -n "How many commits to squash?"
+  read count
+  git reset --soft HEAD~$count || return 1
+  git commit --amend --no-edit || return 1
 }
 
 aur() {
   [[ -f PKGBUILD ]] || return 1
-  # same comments as above
-  sed -e 's/"git+htt.*$//'g -e 's/git+htt.*$//'g -e '/^options=/d' -e 's/?//g' -e '/CFLAGS/d' -e '/CXXFLAGS/d' PKGBUILD > "$XDG_RUNTIME_DIR"/PKGBUILD.clean
+  _extractdata || return 1
   . "$XDG_RUNTIME_DIR"/PKGBUILD.clean 
   rm -f "$XDG_RUNTIME_DIR"/PKGBUILD.clean
   mksrcinfo || return 1
   git commit -am "Update to $pkgver-$pkgrel"
+  unset pkgver pkgrel
 }
 
 fpush() {
   git push origin +$(git rev-parse --abbrev-ref HEAD)
 }
+
+alias branches="git for-each-ref --sort=-committerdate refs/heads/ --format='%(committerdate:short) %(refname:short)'"
 
 gitd() {
   if [[ -z "$1" ]]; then
@@ -292,6 +334,18 @@ alias gits='git status'
 
 ## more specific
 
+mag() {
+  local _url='https://10.9.8.253:8080/api/v2'
+  echo -n "Enter the magnet URL: "
+  read mag
+  # get session cookie
+  curl -k -X POST -c "$XDG_RUNTIME_DIR"/cookies.txt -d "username=admin&password=btgogo@" \
+    "$_url"/auth/login || return 1
+  # push a magnet url to the daemon
+  [[ -f "$XDG_RUNTIME_DIR/cookies.txt" ]] && 
+    curl -k -b "$XDG_RUNTIME_DIR"/cookies.txt "$_url"/torrents/add -X POST -F "urls=$mag"
+}
+
 FF() {
   # find file names matching first token and list them by date
   if [[ -n "$1" ]]; then
@@ -315,22 +369,6 @@ bi() {
     } || return 1
 }
 
-getpkg() {
-  if [[ -n "$1" ]]; then
-    if [[ ! -d "$1"-main ]]; then
-      if [[ ! -f "$1"-main.tar.gz ]]; then
-        wget --quiet https://gitlab.archlinux.org/archlinux/packaging/packages/"$1"/-/archive/main/"$1"-main.tar.gz || return 1
-      fi
-      tar zxf "$1"-main.tar.gz
-      rm -f "$1"-main.tar.gz
-    fi
-    cd "$1"-main
-    #git clone https://gitlab.archlinux.org/archlinux/packaging/packages/$1.git && cd $1
-  else
-    return 2
-  fi
-}
-
 alias sums='/usr/bin/updpkgsums && chmod 644 PKGBUILD && rm -rf src'
 alias ccm='sudo ccm'
 alias hddtemp='sudo hddtemp'
@@ -347,17 +385,6 @@ signit() {
   fi
 }
 
-readyit() {
-  if [[ -z "$1" ]]; then
-    echo "Provide a filename and try again." && return 1
-  else
-    file="$1"
-    zstd -c -T0 -q -18 - <"$file" >"$file".zst
-    target_dts=$(date -d "$(stat -c %Y $file | awk '{print strftime("%c",$1)}')" +%Y%m%d%H%M.%S)
-    gpg --detach-sign --local-user 5EE46C4C "$file.zst" && touch -t "$target_dts" "$file.zst.sig"
-  fi
-}
-
 clone() {
   [[ -z "$1" ]] && echo "provide a repo name" && return 1
   git clone git@github.com:graysky2/"$1".git || return 1
@@ -366,6 +393,13 @@ clone() {
   grep git: .git/config &>/dev/null
   [[ $? -gt 0 ]] && echo "no need to fix config" && return 1
   sed -i '/url =/ s,://github.com/,@github.com:,' .git/config
+}
+
+getpkg() {
+  [[ -z "$1" ]] && echo "provide a valid package name" && return 1
+  cd /scratch || return 1
+  pkgctl repo clone "$1" || return 1
+  cd "$1" || return 1
 }
 
 ## ssh shortcuts
@@ -383,11 +417,9 @@ alias sc="$HOME/bin/s c"
 alias sd="$HOME/bin/s d"
 alias sv="$HOME/bin/s v"
 alias ssu="$HOME/bin/s sub"
-alias sod="$HOME/bin/s sod"
-alias s3="$HOME/bin/s s3"
 
 alias sp="$HOME/bin/s p2"
-#alias sp2="$HOME/bin/s p2"
+alias st="$HOME/bin/s t"
 
 alias sgl="$HOME/bin/s gl"
 alias sr="$HOME/bin/s r"

@@ -1,4 +1,4 @@
-autocmd BufEnter *.in set ai sw=2 ts=2 sta et fo=croql
+"autocmd BufEnter *.in set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter *.sh set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter PKGBUILD set ai sw=2 ts=2 sta et fo=croql
 autocmd BufEnter *.install set ai sw=2 ts=2 sta et fo=croql
@@ -27,7 +27,8 @@ set pastetoggle=<F2>
 "http://stackoverflow.com/questions/4998582/show-whitespace-characters-in-gvim
 map <F4> :set list!<CR>
 map <F5> :setlocal spell! spelllang=en_us<CR>
-
+nnoremap <F6> :set number!<CR>
+map <F7> :set textwidth=72<CR>gqap:set colorcolumn=72<CR>
 highlight Comment cterm=italic
 set showmatch     " show matching brackets (),{},[]
 set mat=5         " show matching brackets for 0.5 seconds
