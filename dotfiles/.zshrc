@@ -1,38 +1,32 @@
 # ~/.zshrc
-
 # works in conjunction with extra/grml-zsh-config
 #
 # general setup stuff
-# pretty colors
+
+unsetopt nomatch
 BLD="\e[01m" RED="\e[01;31m" GREEN="\e[1;32m" NRM="\e[00m"
 bindkey -v
 [[ -z "$PS1" ]] && return
 [[ -f /etc/profile ]] && source /etc/profile
 
-feeds=/scratch/union/feeds/packages
-
 PATH=$PATH:$HOME/bin
-TERM=xterm-256color
 
-#export REPORTMEMORY=10
 REPORTTIME=1
 export SSH_AUTH_SOCK=$XDG_RUNTIME_DIR/gcr/ssh
 #export MPD_HOST=$(ip addr show enp13s0 | grep -m1 inet | awk -F' ' '{print $2}' | sed 's/\/.*$//')
-export MAKEFLAGS=-j33
 export REPO=/incoming/Remote/repo/x86_64
 export DISTCC_DIR=/scratch/.distcc
-
-# packages are green
-export LS_COLORS=$LS_COLORS:"*.tar.zst=01;32"
-export LS_COLORS=$LS_COLORS:"*.ipk=01;32"
-
+export LS_COLORS=$LS_COLORS:"*.img.zst=01;33:*.tar.zst=01;32:*.apk=01;32:*.patch=01;33:*.diff=01;33:*.mbx=01;33"
 # use middle-click for pass rather than clipboard
 export PASSWORD_STORE_X_SELECTION=primary
 export PASSWORD_STORE_CLIP_TIME=10
+export build=/scratch/.chroot/$(whoami)/build
+export feeds=/scratch/openwrt/feeds/packages
+export MAKEFLAGS=-j30
 
 # if on workstation extend PATH
 [[ -d $HOME/bin/makepkg ]] &&
-  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots::$HOME/bin/stress
+  PATH=$PATH:$HOME/bin/makepkg:$HOME/bin/mounts:$HOME/bin/repo:$HOME/bin/benchmarking:$HOME/bin/chroots:$HOME/bin/stress
 
 [[ -x /usr/bin/alsi ]] && alsi -a
 
@@ -47,7 +41,7 @@ setopt inc_append_history
 setopt share_history
 
 # fix zsh annoying history behavior
-h() { if [ -z "$*" ]; then history 1; else history 1 | egrep "$@"; fi; }
+h() { if [ -z "$*" ]; then history 1; else history 1 | grep -E "$@"; fi; }
 
 autoload -Uz up-line-or-beginning-search
 autoload -Uz down-line-or-beginning-search
@@ -85,9 +79,9 @@ udisabled() { systemctl --user disable "$1"; }
 ## general
 pacgraph() { expac -H M '%m\t%n' | sort -h -r | less }
 
-alias ncdu='ncdu --color dark-bg'
 alias make='nice -n 19 make'
 alias makepkg='nice -n 19 makepkg'
+alias ncdu='ncdu --color dark-bg'
 alias dmesg='dmesg -e'
 alias ls='ls --group-directories-first --color'
 alias ll='ls -lhF'
@@ -111,17 +105,17 @@ alias pp='sudo pacman -Syu'
 alias bb='sudo bleachbit --clean system.cache system.localizations system.trash ; sudo paccache -vrk 2 || return 0'
 alias bb2='bleachbit --clean chromium.cache chromium.dom thumbnails.cache'
 alias rz='find . -type f -size 0 -delete'
-## less general
 alias ma='cd /home/stuff/aur4'
 alias na='cd /home/stuff/my_pkgbuild_files'
 alias lx='sudo lxc-ls -f'
 alias mpd='systemctl --user start mpd'
 alias kmpd='systemctl --user stop mpd'
-#alias cvlc='cvlc --rtsp-frame-buffer-size 800000'
 alias dup='xfce4-terminal --geometry "${COLUMNS}x${LINES}" --working-directory="$(pwd)"'
 alias p='patch -p1 -i '
-alias ins='sudo pacman -U $1'
-alias findd='find . -type d | grep $1'
+ins() { sudo pacman -U "$1"; }
+findd() { find . -type d | grep "$1"; }
+alias patchwipe="find . \( -name '*.orig' -o -name '*.rej' \) -type f -exec rm -f {} +"
+
 oi() {
   # open in
   [[ -n "$1" ]] || return 1
@@ -141,13 +135,15 @@ runtime() {
 findi() {
   [[ -n "$i" ]] || return 1
   echo
-  #find . -type f -name "$i"
   find . -type f -name "${i##*/}"
+  # open a new term
+  local tit=$(find "$PWD" -type f -name "${i##*/}" | sort | head -n 1 | sed 's/\/patches.*//')
+  xfce4-terminal --geometry 128x36 --working-directory="$tit"
 }
 
 deli() {
   [[ -n "$i" ]] || return 1
-  output=$(find . -type f -name "$i")
+  output=$(find . -type f -name "${i##*/}")
   { read -r _live; read -r _git; } <<< "$output"
   git rm -f "$_git"
   rm -f "$_live"
@@ -168,9 +164,8 @@ upp() {
 }
 
 pagrep() {
-  # find lerm looking in all files under current dir
   [[ -n "$1" ]] || return 1
-  find . -type f -not -iwholename '*.git*' -not -iwholename '*.patch' -print0 | xargs -0 grep --color=auto "$1"
+  rg --glob '!*.patch' "$@"
 }
 
 fixo() {
@@ -219,7 +214,7 @@ x() {
         b=$(basename "$1" .tar.xz)
         bsdtar Jxf "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.xz)
-        b=$(basename "$1" .gz)
+        b=$(basename "$1" .xz)
         xz -d "$1" && [[ -d "$b" ]] && cd "$b" || return 0 ;;
       *.rar)
         b=$(basename "$1" .rar)
@@ -262,6 +257,11 @@ x() {
 
 ## git stuff
 
+alias flip='sed -i "/_regen/ s,=,=1," PKGBUILD'
+
+# note the the escaping of " and $
+alias bumprel="sed -i -E 's/^(pkgrel=)([0-9]+)/echo \"\1\$((\2+1))\"/e' PKGBUILD"
+
 _extractdata() {
     # sourcing PKGBUILD with options throws an error in zsh
     # bad set of key/value pairs for associative array
@@ -289,9 +289,23 @@ gitup() {
 
 gsqu() {
   echo -n "How many commits to squash?"
-  read count
+  read -r count
   git reset --soft HEAD~$count || return 1
   git commit --amend --no-edit || return 1
+}
+
+gitcp() {
+  echo -n "enter hash to cherry-pick "
+  read -r hash
+  git cherry-pick -X theirs $hash
+}
+
+gitt() {
+  echo -n "which file to use from their branch: "
+  read -r tfile
+  git checkout --theirs -- $tfile
+  git add $tfile
+  git rebase --continue
 }
 
 aur() {
@@ -323,8 +337,11 @@ gitd() {
 gclean() {
   [[ -d .git ]] || return 1
   du -sh .git
-  git remote prune origin ; git repack && git prune-packed &&
-    git reflog expire --expire=1.month.ago && git gc --aggressive
+  git remote prune origin
+  git repack
+  git prune-packed
+  git reflog expire --expire=1.month.ago
+  #git gc --aggressive
   du -sh .git
 }
 
@@ -337,7 +354,7 @@ alias gits='git status'
 mag() {
   local _url='https://10.9.8.253:8080/api/v2'
   echo -n "Enter the magnet URL: "
-  read mag
+  read -r mag
   # get session cookie
   curl -k -X POST -c "$XDG_RUNTIME_DIR"/cookies.txt -d "username=admin&password=btgogo@" \
     "$_url"/auth/login || return 1
@@ -386,13 +403,24 @@ signit() {
 }
 
 clone() {
-  [[ -z "$1" ]] && echo "provide a repo name" && return 1
-  git clone git@github.com:graysky2/"$1".git || return 1
-  cd "$1"
-  [[ ! -f .git/config ]] && echo "no git config" && return 1
-  grep git: .git/config &>/dev/null
-  [[ $? -gt 0 ]] && echo "no need to fix config" && return 1
-  sed -i '/url =/ s,://github.com/,@github.com:,' .git/config
+  if [[ -z "$1" ]]; then
+    echo "provide a repo name"
+    return 1
+  fi
+  if git clone git@github.com:graysky2/"$1".git >/dev/null; then
+    cd "$1"
+    echo " >>> github/graysky2"
+  elif git clone git@gitlab.archlinux.org:graysky/"$1".git >/dev/null; then
+    cd "$1"
+    git config user.email therealgraysky@proton.me ; git config user.name "John Audia"
+    echo " >>> archlinux gitlab/graysky"
+  elif git clone git@gitlab.com:therealgraysky/"$1".git >/dev/null; then
+    cd "$1"
+    echo " >>> gitlab/therealgraysky"
+  else
+    echo " $1 ain't no git repo I know!"
+    return 1
+  fi
 }
 
 getpkg() {
@@ -429,5 +457,6 @@ alias srepo="$HOME/bin/s repo"
 alias sm1="$HOME/bin/s mo"
 alias sm2="$HOME/bin/s mo2"
 alias sm3="$HOME/bin/s mo3"
+alias sm4="$HOME/bin/s mo4"
 
 # vim:set ts=2 sw=2 et:

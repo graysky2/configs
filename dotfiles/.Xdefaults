@@ -1,2 +1,5 @@
 URxvt.perl-ext:
 URxvt.perl-ext-common:
+
+Xcursor.theme: Breeze_Light
+Xcursor.size: 24

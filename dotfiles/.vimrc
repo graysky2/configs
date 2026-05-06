@@ -5,7 +5,8 @@ autocmd BufEnter *.install set ai sw=2 ts=2 sta et fo=croql
 autocmd BufRead,BufNewFile kodi.log setf kodi
 autocmd BufRead,BufNewFile *.conf setf dosini
 autocmd BufRead,BufNewFile PKGBUILD setf PKGBUILD
-
+autocmd VimResized * wincmd =
+autocmd BufEnter *.py setlocal sw=4 ts=4 sta et fo=croql
 set number
 
 colorscheme jellybeans
@@ -16,7 +17,9 @@ set autoindent
 set smartindent
 
 syntax on
-filetype indent on
+
+"filetype indent on
+filetype plugin indent on
 set t_Co=256
 set background=dark
 set nopaste
@@ -38,3 +41,5 @@ highlight SpecialKey term=standout ctermbg=yellow guibg=yellow
 highlight RedundantSpaces term=standout ctermbg=Grey guibg=#ffddcc
 
 set mouse-=a
+
+nnoremap pullall :.,$diffget RIGHT<CR>

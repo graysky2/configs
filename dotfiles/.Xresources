@@ -49,3 +49,6 @@ URxvt.color15:    #EEEEEC
 !URxvt.keysym.M-C-2: command:\033]710;xft:ubuntu mono:size=10:antialias=true:hinting=false\007\033]711;xft:ubuntu mono:size=14:antialias=true:hinting=false\007
 !URxvt.keysym.M-C-3: command:\033]710;xft:ubuntu mono:size=10:antialias=false:hinting=true\007\033]711;xft:ubuntu mono:size=14:antialias=false:hinting=true\007
 !URxvt.keysym.M-C-4: command:\033]710;xft:ubuntu mono:size=10:antialias=false:hinting=false\007\033]711;xft:ubuntu mono:size=14:antialias=false:hinting=false\007
+
+Xcursor.theme: Breeze_Light
+Xcursor.size: 24
